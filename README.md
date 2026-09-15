@@ -50,3 +50,6 @@ Python · Pandas · NumPy · Matplotlib · Jupyter
 ## Next steps
 
 Extend with Tracxn's aggregate shutdown counts to weight these categories against the true base rate, and track 2026 shutdowns to see whether the Founder/Legal category keeps growing.
+
+Built by - 
+SHREYA MISHRA 

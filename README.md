@@ -37,9 +37,31 @@ This README explains **every file, every design decision, and every step of the 
 
 ---
 
-## 3. Data Source & Collection Process
+## 3. How to Reproduce This Project
 
-### 3.1 Where the data came from
+```bash
+# 1. Install dependencies
+pip install pandas numpy matplotlib scikit-learn joblib
+
+# 2. Regenerate the descriptive charts (figures 1-7)
+python analysis.py
+
+# 3. Train and evaluate the predictive model (figures 8-9)
+python model.py
+
+# 4. (Optional) Rebuild the notebook and HTML report
+python build_notebook.py
+python build_report.py
+
+# 5. (Optional) Rebuild the Word report -- requires Node.js and the `docx` npm package
+node build_docx.js
+```
+
+---
+
+## 4. Data Source & Collection Process
+
+### 4.1 Where the data came from
 
 All 52 startups are drawn from three annual feature articles published by **Inc42** -- India's largest startup-focused business media and intelligence platform:
 
@@ -47,9 +69,9 @@ All 52 startups are drawn from three annual feature articles published by **Inc4
 - **2024**: "2024's Startup Graveyard: 12 Indian Startups That Shut Down This Year" -- https://inc42.com/features/2024s-startup-graveyard-12-indian-startups-that-shut-down-this-year/ -- 12 startups
 - **2025**: "From Burn To Breakdown: 25 Startups That Shut Down In 2025" -- https://inc42.com/features/25-indian-startups-shut-down-in-2025/ -- 25 startups
 
-Each article profiles startups individually, citing the founders' own public statements (usually a LinkedIn post announcing closure, or a direct interview with Inc42) about why the company shut down. This matters methodologically: **the "cause of death" in this dataset is the self-reported reason, not an external forensic judgement** -- a limitation discussed further in Section 9.
+Each article profiles startups individually, citing the founders' own public statements (usually a LinkedIn post announcing closure, or a direct interview with Inc42) about why the company shut down. This matters methodologically: **the "cause of death" in this dataset is the self-reported reason, not an external forensic judgement** -- a limitation discussed further in Section 10.
 
-### 3.2 How each row was built
+### 4.2 How each row was built
 
 For every startup mentioned in the three reports, the following fields were manually extracted and recorded:
 
@@ -64,7 +86,7 @@ For every startup mentioned in the three reports, the following fields were manu
 | `city` | Headquarters city | `Bengaluru` |
 | `source_year_report` | Which of the three Inc42 reports this entry came from | `2024` |
 
-### 3.3 What this data is *not*
+### 4.3 What this data is *not*
 
 This is the single most important caveat in the whole project, so it's worth stating plainly: **this is not a census of startup failure in India.** Tracxn data, cited within the same Inc42 reports, shows that **over 28,000 Indian startups shut down in 2023-2024 alone.** This dataset covers only the ~52 that were prominent or well-funded enough to be individually named and profiled by a journalist. That means the sample is inherently biased toward:
 
@@ -76,11 +98,11 @@ Every finding in this project should be read as **"among the funded, documented 
 
 ---
 
-## 4. Cleaning & Feature Engineering
+## 5. Cleaning & Feature Engineering
 
 This step is handled by `analysis.py` and mirrored in the notebook.
 
-### 4.1 Computing lifespan
+### 5.1 Computing lifespan
 
 ```python
 df["lifespan_years"] = df["shutdown_year"] - df["founded_year"]
@@ -88,7 +110,7 @@ df["lifespan_years"] = df["shutdown_year"] - df["founded_year"]
 
 A simple derived field: how many years the company operated before shutting down.
 
-### 4.2 Categorizing the cause of death
+### 5.2 Categorizing the cause of death
 
 The raw `primary_cause` field is too granular to analyze directly -- it has **46 distinct values across 52 startups** (things like "Cash Burn / Flawed Biz Model" or "Regulatory (RBI UPI Ban)"). To find patterns, every entry was mapped into one of **7 broader cause categories** using a keyword-matching function, applied in a fixed priority order (so a startup with multiple contributing factors gets classified by its most structurally fundamental cause first):
 
@@ -126,7 +148,7 @@ The resulting distribution:
 
 ---
 
-## 5. Descriptive Analysis (`analysis.py`)
+## 6. Descriptive Analysis (`analysis.py`)
 
 This script produces **7 charts** (Figures 1-7), each answering one specific question:
 
@@ -142,19 +164,19 @@ All charts share a consistent visual design (color palette, fonts, gridlines) ma
 
 ---
 
-## 6. Predictive Modelling (`model.py`)
+## 7. Predictive Modelling (`model.py`)
 
-### 6.1 The question
+### 7.1 The question
 
 Beyond description, this project asks: **given only a startup's sector, funding level, and eventual cause of death, can a model predict how many years it survived?**
 
-### 6.2 Why Leave-One-Out Cross-Validation (LOOCV)
+### 7.2 Why Leave-One-Out Cross-Validation (LOOCV)
 
 Only 34 of the 52 startups have a disclosed funding figure, so the modelling dataset is just **34 rows**. With a sample this small, a single train/test split (e.g., 80/20) would be highly unstable -- whichever few rows happened to land in the test set could make the model look far better or far worse than it really is, purely by chance.
 
 **LOOCV solves this**: the model is trained on 33 startups and tested on the 1 that was held out, and this is repeated 34 times so that *every single startup* gets used as the test case exactly once. Averaging the error across all 34 held-out predictions gives the most honest, stable estimate of real-world performance that this sample size can support.
 
-### 6.3 Models compared
+### 7.3 Models compared
 
 | Model | Why it was included |
 |---|---|
@@ -162,13 +184,13 @@ Only 34 of the 52 startups have a disclosed funding figure, so the modelling dat
 | **Random Forest Regressor** (300 trees, max depth 4) | Can capture non-linear patterns and feature interactions; the shallow max depth is deliberately chosen to avoid overfitting on only 34 rows |
 | **Naive baseline** (always predict the mean lifespan, 4.18 years) | The honest floor -- any model that can't beat "just guess the average" isn't adding value |
 
-### 6.4 Features used
+### 7.4 Features used
 
 - `log_funding` -- total funding raised, log-transformed (funding is heavily right-skewed: a few huge rounds like Builder.ai's $450M would otherwise dominate the model)
 - `sector_grp` -- the startup's sector, with any sector appearing fewer than 2 times grouped into "Other" to avoid creating noisy one-startup categories
-- `cause_category` -- the 7-category cause classification described in Section 4.2
+- `cause_category` -- the 7-category cause classification described in Section 5.2
 
-### 6.5 Results
+### 7.5 Results
 
 | Model | LOOCV MAE (years) | LOOCV R2 | Improvement vs. Baseline |
 |---|---|---|---|
@@ -180,7 +202,7 @@ The Random Forest model was selected as the final model based on lowest MAE, sav
 
 **Feature importance** (from the Random Forest, fit on the full 34-row dataset): `log_funding` alone accounts for **~73%** of the model's total predictive weight -- by far the dominant signal. Every sector and cause-of-death indicator contributes only a few percentage points individually. This quantitatively confirms the correlation finding from the descriptive analysis: funding level is the single strongest available predictor of survival time, but it explains less than three-quarters of the outcome -- meaning sector and cause-specific effects still matter.
 
-### 6.6 Honest limitations of the model
+### 7.6 Honest limitations of the model
 
 This is deliberately framed as **illustrative, not deployable**:
 
@@ -188,7 +210,7 @@ This is deliberately framed as **illustrative, not deployable**:
 - An MAE of 1.26 years is a meaningful improvement over guessing, but still a large margin of error relative to typical lifespans of 2-10 years -- not precise enough for a single confident prediction about any one startup.
 - The model's real value is demonstrating a **defensible workflow**: an appropriate validation method for small data (LOOCV), an honest baseline for comparison, and transparent feature importance -- rather than claiming a production-ready prediction tool.
 
-### 6.7 How to reload and use the saved model
+### 7.7 How to reload and use the saved model
 
 ```python
 import joblib
@@ -206,7 +228,7 @@ print(predicted_lifespan)
 
 ---
 
-## 7. Key Findings
+## 8. Key Findings
 
 1. **Capital crunch is the single biggest documented cause of death (31%)** -- but Product-Market Fit failure and Regulatory Shock are statistically tied for second place (19% each). Regulation is a top-three killer of Indian startups, not a footnote.
 2. **Regulatory risk is a constant background hazard, not a fading pandemic-era problem** -- it caused 4, 2, and 4 shutdowns in 2023, 2024, and 2025 respectively, with no sign of tapering off as the broader funding winter has thawed.
@@ -217,7 +239,7 @@ print(predicted_lifespan)
 
 ---
 
-## 8. Tools & Libraries Used
+## 9. Tools & Libraries Used
 
 - **Python** -- core language for all data processing and analysis
 - **Pandas** -- data loading, cleaning, grouping, cross-tabulation
@@ -230,7 +252,7 @@ print(predicted_lifespan)
 
 ---
 
-## 9. Limitations (Full List)
+## 10. Limitations (Full List)
 
 - **Sample size and selection bias**: n = 52 (34 for the model) is a curated media sample, not random or exhaustive. It skews toward better-funded, Bengaluru-headquartered, VC-backed companies.
 - **Single stated cause per startup**: most shutdowns involve multiple contributing factors; assigning one dominant category per startup necessarily flattens some nuance.
@@ -240,34 +262,12 @@ print(predicted_lifespan)
 
 ---
 
-## 10. Next Steps
+## 11. Next Steps
 
 - Extend the dataset with **Tracxn's aggregate shutdown counts** (15,921 in 2023; 12,717 in 2024) to weight these qualitative categories against the true, much larger base rate of failure.
 - Continue tracking **2026 shutdowns** as they're reported, to see whether the Founder/Legal/Insolvency category keeps growing as a share of high-profile failures.
 - Grow the funding-disclosed subsample (currently 34 startups) to make the predictive model meaningfully more reliable.
 - Consider a follow-up project using **primary data** (e.g., a founder survey) to capture causes of failure that never make it into a public LinkedIn post.
-
----
-
-## 11. How to Reproduce This Project
-
-```bash
-# 1. Install dependencies
-pip install pandas numpy matplotlib scikit-learn joblib
-
-# 2. Regenerate the descriptive charts (figures 1-7)
-python analysis.py
-
-# 3. Train and evaluate the predictive model (figures 8-9)
-python model.py
-
-# 4. (Optional) Rebuild the notebook and HTML report
-python build_notebook.py
-python build_report.py
-
-# 5. (Optional) Rebuild the Word report -- requires Node.js and the `docx` npm package
-node build_docx.js
-```
 
 ---
 

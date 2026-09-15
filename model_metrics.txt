@@ -1,0 +1,18 @@
+RUNWAY PREDICTION MODEL — RESULTS SUMMARY
+==================================================
+Training data: 34 startups with disclosed funding
+Validation method: Leave-One-Out Cross-Validation (LOOCV)
+
+Baseline (predict mean lifespan): MAE = 1.90 years
+Linear Regression: MAE = 1.40 years | R2 = 0.470 | +26% vs baseline
+Random Forest: MAE = 1.26 years | R2 = 0.446 | +34% vs baseline
+
+Best model: Random Forest
+
+Top feature importances (Random Forest):
+  log_funding: 0.726
+  sector_grp_Other: 0.093
+  sector_grp_Media & Content: 0.057
+  sector_grp_AI & Enterprise: 0.040
+  sector_grp_Web3 & Crypto: 0.022
+  cause_category_Capital / Funding Crunch: 0.021
